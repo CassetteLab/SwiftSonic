@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.1] — 2026-10-22
+
+### Fixed
+
+- **Empty string in optional `Date` fields no longer fails the whole response** — some servers (e.g. Nextcloud Music) send `"played": ""` instead of omitting the key or sending `null` for never-played items. An internal `KeyedDecodingContainer.decodeIfPresent(Date.self, forKey:)` overload now decodes `""` as `nil` for every optional `Date` in the library (`played`, `starred`, `created`, `changed`, `expires`, …). Any other malformed date still throws, and required (non-optional) `Date` fields are unchanged. No public API change. ([#4](https://github.com/CassetteLab/SwiftSonic/issues/4))
+
+---
+
 ## [0.9.0] — 2026-07-17
 
 ### Added
