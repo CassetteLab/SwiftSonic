@@ -12,6 +12,41 @@ import Foundation
 @Suite("getMusicFolders")
 struct GetMusicFoldersTests {
 
+    @Test("getMusicFolders accepts numeric and text folder IDs")
+    func decodesMixedFolderIDs() async throws {
+        let mock = MockHTTPTransport()
+        mock.enqueue(Data("""
+        {"subsonic-response":{"status":"ok","version":"1.16.1","musicFolders":{
+          "musicFolder":[{"id":1,"name":"Western"},{"id":"bollywood","name":"Bollywood"}]
+        }}}
+        """.utf8))
+
+        let client = SwiftSonicClient(configuration: .test, transport: mock)
+        let folders = try await client.getMusicFolders()
+
+        #expect(folders.map(\.id) == ["1", "bollywood"])
+        #expect(folders.map(\.name) == ["Western", "Bollywood"])
+    }
+
+    @Test("folder IDs encode as strings and optional names round-trip")
+    func roundTripsFolder() throws {
+        let folder = try JSONDecoder().decode(MusicFolder.self, from: Data(#"{"id":42}"#.utf8))
+        let encoded = try JSONEncoder().encode(folder)
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let decoded = try JSONDecoder().decode(MusicFolder.self, from: encoded)
+
+        #expect(object["id"] as? String == "42")
+        #expect(decoded.id == "42")
+        #expect(decoded.name == nil)
+    }
+
+    @Test("invalid folder IDs are rejected", arguments: ["null", "true", "1.5", "{}", "[]"])
+    func rejectsInvalidFolderID(_ value: String) {
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(MusicFolder.self, from: Data("{\"id\":\(value)}".utf8))
+        }
+    }
+
     @Test("getMusicFolders decodes folder list")
     func decodesFolders() async throws {
         let mock = MockHTTPTransport()
